@@ -3,6 +3,8 @@
 
 *Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
 
+Link to the github page: https://sirtx.github.io/IODS-project/
+
 ```{r}
 # This is a so-called "R chunk" where you can write R code.
 
@@ -11,3 +13,10 @@ date()
 ```
 The text continues here.
 
+# Open Data Science course 
+
+I heard about this course from PhD School's mailing list, and  other PhD students in our group had taken the course couple years ago, and found it useful. I'm using **R** and **RStudio** regularly during my work, but I've used __git/github__ very little, and never used __RMarkdown__ before, so I hope the course will improve my skills and routines for:  
+
+* code documentation  
+* visualization  
+* version control  
