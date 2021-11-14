@@ -1,4 +1,4 @@
-# Chapter 2 - Analysis
+# Chapter 2 - Regression and model validation
 
 *Describe the work you have done this week and summarize your learning.*
 
@@ -12,7 +12,6 @@
 date()
 ```
 
-Here we go again...
 
 *Reading the data frame*
 
@@ -51,55 +50,71 @@ hist(l2014$stra)
 hist(l2014$points)
 ```
 
-Besides age, the variables are fairly normally distributed
+Besides age, the variables are fairly normally distributed, stra variable is also
 
+
+
+## Exxploring variables and relationships  
 
 ```{r}
-par(mfrow = c(2,3))
-boxplot(l2014$age ~ l2014$gender)
-boxplot(l2014$attitude ~ l2014$gender)
-boxplot(l2014$surf ~ l2014$gender)
-boxplot(l2014$deep ~ l2014$gender)
-boxplot(l2014$stra ~ l2014$gender)
-boxplot(l2014$points ~ l2014$gender)
+(p <- ggpairs(l2014, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20))))
 
 ```
 
-All in all the variables were fairly equal in both genders, notably males had slightly higher attitude scroe compared females, whereas females had bit higher surface score compared to males. 
+From the graphical summary we can see that there were significantly more woman than men.All in all the variables were fairly equal in both genders, notably males had slightly higher attitude scroe compared females, whereas females had bit higher surface score compared to males.  
+
+Exam points are most highly significantly correlated with attitude and somewhat correlated strategic questions, and negatively correlated with surface questions.
 
 
-```{r}
-# initialize plot with data and aesthetic mapping
-p1 <- ggplot(l2014, aes(x = attitude, y = points, col = gender))
+Age did not significantly correlate with exam points and other variables.
 
-# define the visualization type (points)
-(p2 <- p1 + geom_point() + geom_smooth(method = "lm") + ggtitle("Student's attitude versus exam points"))
-```
-
-
-Logistic regression
+## Fitting regression model
 
 ```{r}
-ggpairs(l2014, lower = list(combo = wrap("facethist", bins = 20)))
-
 # create a regression model with multiple explanatory variables
-my_model2 <- lm(points ~ attitude + stra + surf, data = l2014)
+my_model <- lm(points ~ deep + stra + attitude, data = l2014)
+
+# print out a summary of the model
+summary(my_model)
+
+```
+
+
+Model's multiple R-squared is 0.2097. This means that about 21% the of variance of points that can be explained by the attitude, stra and deep.  
+
+Model's Residual standard error: 5.289 on 162 degrees of freedom.  
+
+We can see that the "stra" and "deep" do not have statistically significant relationship with the points (P-value > 0.05).  The only significant explanatory variable "attitude" has a positive relationship with points (Estimate: 3.5254), and it's highly  significant with P-value of 4.44e-09. The model's non-zero crossing of X-axis is also highly significant. 
+
+Therefore we drop these 2 variables and linear model with points as target variable and only attitude as explanatory variable
+
+
+
+```{r}
+# fit a linear model with points as target variable and attitude as explanatory variable
+my_model2 <- lm(points ~ attitude, data = l2014)
 
 # print out a summary of the model
 summary(my_model2)
-
 ```
 
-Model validation
+Here we see that the attitude still has significant relationship with points (P-value = 4.12e-09), when it's the only explanatory variable. Model's multiple R-squared remained at 0.1906, indicating that dropping "deep" and "stra" only affected model's performance little.
+
+
+## Model validation
 
 ```{r}
-# create a regression model with multiple explanatory variables
-my_model2 <- lm(points ~ attitude + stra, data = l2014)
 
 # draw diagnostic plots using the plot() function. Choose the plots 1, 2 and 5
-par(plot(my_model2, which = c(1,2,5)), mfrow = c(2,2))
+plot(my_model2, which = c(1,2,5))
 
 ```
+
+Residuals vs. fitted values plot shows that modeol's explanatory variables don't seem to have too much effect on residuals.   
+
+The QQ-plot shows that the normality assumption of fairly well, as most of the residuals remain near the normality line.  
+
+At Residuals vs leverage plot we can see that some points have bit high leevrage (x-axis values) but even these aren't outside Cook's distance, so model shouldn't be affected too much by them.    
 
 
 
