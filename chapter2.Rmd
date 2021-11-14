@@ -1,6 +1,8 @@
-# Insert chapter 2 title here
+# Chapter 2 - Analysis
 
 *Describe the work you have done this week and summarize your learning.*
+
+
 
 - Describe your work and results clearly. 
 - Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
@@ -11,3 +13,96 @@ date()
 ```
 
 Here we go again...
+
+*Reading the data frame*
+
+```{r}
+library(ggplot2)
+library(GGally)
+l2014<-read.table('data/learning_2014_out.csv', header = T, sep = ',', stringsAsFactors = F)
+
+```
+
+Looking at the data structure
+
+```{r}
+str(l2014)
+```
+
+```{r}
+head(l2014)
+```
+
+The data consists of 7 variables and 166 observations.  
+It includes students' performance metrics in three subject categories: deep learning "deep", strategic learning "stra", surface learning "surf" and exam point in "points" and attitude in their own variables. The deep and surf are based on 12 average of 12 questions from each subjects and stra is based on aaverage of 8 strategic questions.  
+
+The dataset also contains students' gender and age in their respective variables.
+
+
+
+```{r}
+summary(l2014)
+par(mfrow = c(2,3))
+hist(l2014$age)
+hist(l2014$attitude)
+hist(l2014$surf)
+hist(l2014$deep)
+hist(l2014$stra)
+hist(l2014$points)
+```
+
+Besides age, the variables are fairly normally distributed
+
+
+```{r}
+par(mfrow = c(2,3))
+boxplot(l2014$age ~ l2014$gender)
+boxplot(l2014$attitude ~ l2014$gender)
+boxplot(l2014$surf ~ l2014$gender)
+boxplot(l2014$deep ~ l2014$gender)
+boxplot(l2014$stra ~ l2014$gender)
+boxplot(l2014$points ~ l2014$gender)
+
+```
+
+All in all the variables were fairly equal in both genders, notably males had slightly higher attitude scroe compared females, whereas females had bit higher surface score compared to males. 
+
+
+```{r}
+# initialize plot with data and aesthetic mapping
+p1 <- ggplot(l2014, aes(x = attitude, y = points, col = gender))
+
+# define the visualization type (points)
+(p2 <- p1 + geom_point() + geom_smooth(method = "lm") + ggtitle("Student's attitude versus exam points"))
+```
+
+
+Logistic regression
+
+```{r}
+ggpairs(l2014, lower = list(combo = wrap("facethist", bins = 20)))
+
+# create a regression model with multiple explanatory variables
+my_model2 <- lm(points ~ attitude + stra + surf, data = l2014)
+
+# print out a summary of the model
+summary(my_model2)
+
+```
+
+Model validation
+
+```{r}
+# create a regression model with multiple explanatory variables
+my_model2 <- lm(points ~ attitude + stra, data = l2014)
+
+# draw diagnostic plots using the plot() function. Choose the plots 1, 2 and 5
+par(plot(my_model2, which = c(1,2,5)), mfrow = c(2,2))
+
+```
+
+
+
+
+
+
