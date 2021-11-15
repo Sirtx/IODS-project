@@ -50,7 +50,7 @@ hist(l2014$stra)
 hist(l2014$points)
 ```
 
-Besides age, the variables are fairly normally distributed, stra variable is also
+Besides age, the variables are fairly normally distributed,  stra variable is also "middle-heavy"
 
 
 
