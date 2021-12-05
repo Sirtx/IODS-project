@@ -79,7 +79,31 @@ Here PCA is visualized with biplot. Variation within the variables is shown with
 Here I standardize the data with scale() function (mean of 0), and do another pca-biplot with variability explained by PCs shown on axis labels.  
 
 ```{r}
-§
+# standardize the variables
+human_std <- scale(human)
+
+# print out summaries of the standardized variables
+summary(human_std)
+
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human_std)
+
+# create and print out a summary of pca_human
+s <- summary(pca_human)
+s
+
+# rounded percentages of variance captured by each PC
+pca_pr <- round(100*s$importance[2,], digits = 1) 
+
+# print out the percentages of variance
+pca_pr
+
+# create object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+# draw a biplot
+biplot(pca_human, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+
 ```
 The PCs for standardized data look much better, as most of the observations are located at the middle, and it's much easier to spot the trends shown with the arrows.  
 
@@ -99,10 +123,10 @@ str(tea)
 head(tea)
 ```
 
-the data contains 36 variables and 300 observations.
+the data contains 36 variables and 300 observations. Next, I select 6 columns for analysis.
 
 ```{r}
-# column names to keep in the dataset
+q# column names to keep in the dataset
 keep_columns <- c("Tea", "How", "how", "sugar", "where", "lunch")
 
 # select the 'keep_columns' to create a new dataset
@@ -111,12 +135,15 @@ tea_time <- select(tea, one_of(keep_columns))
 # look at the summaries and structure of the data
 summary(tea_time)
 str(tea_time)
+head(tea_time)
 
 # visualize the dataset
 gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
 
 ```
-Multiple Correspondence Analysis is another Dimensionality reduction method. It's best suited for qualitative data with categorical variables, but continuous ones can be used as background (supplementary) variables. 
+By looking at structure and few top observations, I can see that the selected variables are categorical, with 2-4 categories per variable.
+
+Multiple Correspondence Analysis is another dimensionality reduction method. It's best suited for qualitative data with categorical variables, but continuous ones can be used as background (supplementary) variables. 
 
 ```{r}
 
@@ -129,3 +156,14 @@ summary(mca)
 # visualize MCA
 plot(mca, invisible=c("ind"), habillage = "quali", graph.type = "classic")
 ```
+
+  
+Output of MCA summary contains (source: https://tuomonieminen.github.io/Helsinki-Open-Data-Science/#/69):  
+- Eigenvalues with the variances and the percentage of variances retained by each dimension  
+- The individuals coordinates, the individuals contribution (%) on the dimension and the cos2 (the squared correlations) on the dimensions.  
+- Coordinates of the variable categories, the contribution (%), the cos2 (the squared correlations) and v.test value. The v.test follows normal distribution: if the value is below/above ± 1.96, the coordinate is significantly different from zero.  
+- Categorical variables, which are squared correlation between each variable and the dimensions. If the value is close to one it indicates a strong link with the variable and dimension.
+
+Summary shows that first 4 dimensions explain about haf of the variance.
+
+From the MCA plot, I see that 29.47% of the variability are explained with Dim 1 and Dim 2. The plot shows correlations for variables, For example it seems that unpackaged tea (how) is almost always bought from tea shop (where) (bottom right), and the "how" and "where" variables appear together elsewhere in the plot, so they seem to have a strong correlation.
