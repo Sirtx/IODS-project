@@ -60,3 +60,56 @@ dim(human)
 
 # saving the joined dataset
 write.table(human,"data/human.csv", row.names = F, col.names = T, sep = ';', quote = F)
+
+###########################
+### Contiuing 4.12.2021 ###
+###########################
+
+library(stringr)
+library(dplyr)
+
+# Loading the ready-made human dataset to make sure data is correct:
+human<-read.table('http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human1.txt', header = T,sep = ',')
+
+
+### Exploring structure of the dataset
+dim(human)
+str(human)
+
+
+# remove the commas from GNI and print out a numeric version of it
+str_replace(human$GNI, pattern=",", replace ="") %>% as.numeric
+
+# columns to keep
+keep <- c("Country", "Edu2.FM", "Labo.FM", "Life.Exp", "Edu.Exp", "GNI", "Mat.Mor", "Ado.Birth", "Parli.F")
+
+# selecting the 'keep' columns
+human <- select(human, one_of(keep))
+
+# print out a completeness indicator of the 'human' data
+complete.cases(human)
+
+# print out the data along with a completeness indicator as the last column
+data.frame(human[-1], comp = complete.cases(human))
+
+# filter out all rows with NA values
+human_ <- filter(human, complete.cases(human) == TRUE)
+
+
+# define the last indice we want to keep
+last <- nrow(human) - 7
+
+# choose everything until the last 7 observations
+human <- human[1:last,]
+
+# add countries as rownames
+rownames(human) <- human$Country
+
+# removing the Country variable
+human <- select(human, -country)
+
+str(human)
+
+# Data has 155 obs. of  8 variables
+
+write.table(human,'data/human.csv', col.names = T, row.names = T, sep = ',', quote = F)

@@ -1,0 +1,151 @@
+# Chapter 5 -  Dimension reduction
+
+
+```{r}
+date()
+```
+
+
+## Data lookup
+
+First loading the dataset and looking variable characteristics with summaries and histograms
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(GGally)
+library(corrplot)
+
+human<-read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human2.txt", header = T, sep = ",")
+
+str(human)
+head(human)
+summary(human)
+
+### Looking at histograms for variables
+for (col in seq(from=1, ncol(human), by=3)) {
+  par(mfrow = c(1,3))
+  hist(human[,col], xlab = colnames(human)[col], main = colnames(human)[col] )
+  hist(human[,col+1], xlab = colnames(human)[col+1], main = colnames(human)[col+1])
+  if (col+2<= ncol(human)) 
+    hist(human[,col+2], xlab = colnames(human)[col+2], main = colnames(human)[col+2])
+}
+
+
+```
+
+The dataset is jointed from 2 datasets, human development "hd" and Gender inequality "gii", which info can be found here http://hdr.undp.org/en/content/human-development-index-hdi. The joined dataset contains 8 variables and 155 oservations, with countries as rownames. Here are short descriptions for variables:
+
+Edu2.FM:      2nd female eductaion / 2nd Male education ratio
+Labo.FM:      2nd female labor force participation / 2nd Male force participation ratio
+Edu.Exp:      Expected years of schooling 
+Life.Exp:     Life expectancy (years)
+GNI:          Gross National Income 
+Mat.Mor:      Eternal mortality rate
+Ado.Birth:    Adolescent birth rate
+Parli.F:      % of females in parliament
+
+```{r}
+ggpairs(human)
+corrplot(cor(human),  method = 'square', order = 'FPC',  type = 'upper', diag = FALSE)
+```
+
+From the ggpairs and correlation plot we can see that there were several significant positive and negative correltions between variables.
+Strong statistically significant positive correlations were observed between:
+Adolescent births and maternal mortality, 
+Life expectancy and 1) education expectancy, 2) higher female 2nd education ratio and 3) Gross National Income
+Education expectancy and 1) higher female 2nd education ratio 2) Gross National Income
+Higher female 2nd education ratio and Gross National Income
+
+Strong statistically significant negative correlations were observed between:
+Maternal mortality and 1) life expectancy, 2) education expectancy, 3) higher female 2nd education ratio, 4) Gross National Income
+Adolescent births and all 4 variables that were negatively correlated with maternal mortality
+
+## PCA on non-standardized data
+
+Here, I'm performing Principal Component Analysis (PCA) with R's prcomp() default Singular Value Decomposition (SVD). THE PCA is an unsupervised dimension reduction method, in which data is first transformed to a new space with equal or less number of dimensions (PCs), and the 1st principal component captures the maximum amount of variance from the features in the original data, the 2nd principal component is orthogonal to the first and it captures the maximum amount of variability left, and so on. 
+```{r}
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human)
+
+# draw a biplot of the principal component representation and the original variables
+biplot(pca_human, choices = 1:2, cex = c(0.8, 1), col = c("grey40", "deeppink2"))
+
+```
+Here PCA is visualized with biplot. Variation within the variables is shown with arrow length and correlation between the variables is shown with angle between arrows. As the data isn't normalized, most of the PC1/PC2 values are packed to upper right corner, with large outliers elsewhere.
+
+## Standardizing the data, performing PCA and explaining PCs
+
+Here I standardize the data with scale() function (mean of 0), and do another pca-biplot with variability explained by PCs shown on axis labels.  
+
+```{r}
+# standardize the variables
+human_std <- scale(human)
+
+# perform principal component analysis (with the SVD method)
+pca_human_std <- prcomp(human_std)
+
+# create and print out a summary of pca_human
+s <- summary(pca_human_std)
+
+# rounded percentages of variance captured by each PC
+pca_pr <- round(100*s$importance[2,], digits = 1) 
+
+# print out the percentages of variance
+pca_pr
+
+# create object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+# draw a biplot
+biplot(pca_human_std, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+
+```
+The PCs for standardized data look much better, as most of the observations are located at the middle, and it's much easier to spot the trends shown with the arrows.  
+
+The 1st PC expalins 53.6% of the data variablilty, and 2nd PC explains 16.2% of the data. Combined, this is almost 70% of the variability in 8 variables, explained with just 2 (PCs)! 
+
+Based on the plot, it looks like that most of variability in variables Mat.Mort and Ado.Birth (positive correlation and PC1 values) and Edu.Exp, Life.Exp, Edu.FM and GNI (positive correlation with each others, negative correlation with Mat.Mort and Ado.Birth and negative PC1 values) are explained in PC1
+PC2 explains variablity in Labo.FM and Parli.Fm which have positive but PC2 vaues and positive, but weaker correlation with each other 
+
+## Factominer's tea  data
+
+Here we take a look at the "tea" data from Factominer-package. 
+
+```{r}
+library(FactoMineR)
+data("tea")
+str(tea)
+head(tea)
+```
+
+the data contains 36 variables and 300 observations.
+
+```{r}
+# column names to keep in the dataset
+keep_columns <- c("Tea", "How", "how", "sugar", "where", "lunch")
+
+# select the 'keep_columns' to create a new dataset
+tea_time <- select(tea, one_of(keep_columns))
+
+# look at the summaries and structure of the data
+summary(tea_time)
+str(tea_time)
+
+# visualize the dataset
+gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+```
+Multiple Correspondence Analysis is another Dimensionality reduction method. It's best suited for qualitative data with categorical variables, but continuous ones can be used as background (supplementary) variables. 
+
+```{r}
+
+# multiple correspondence analysis
+mca <- MCA(tea_time, graph = FALSE)
+
+# summary of the model
+summary(mca)
+
+# visualize MCA
+plot(mca, invisible=c("ind"), habillage = "quali", graph.type = "classic")
+```
