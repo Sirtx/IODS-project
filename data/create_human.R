@@ -93,7 +93,7 @@ complete.cases(human)
 data.frame(human[-1], comp = complete.cases(human))
 
 # filter out all rows with NA values
-human_ <- filter(human, complete.cases(human) == TRUE)
+human <- filter(human, complete.cases(human) == TRUE)
 
 
 # define the last indice we want to keep
@@ -106,10 +106,10 @@ human <- human[1:last,]
 rownames(human) <- human$Country
 
 # removing the Country variable
-human <- select(human, -country)
+human <- select(human, -Country)
 
 str(human)
 
-# Data has 155 obs. of  8 variables
+# Data has 148 obs. of  8 variables
 
 write.table(human,'data/human.csv', col.names = T, row.names = T, sep = ',', quote = F)

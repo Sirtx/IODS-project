@@ -79,27 +79,7 @@ Here PCA is visualized with biplot. Variation within the variables is shown with
 Here I standardize the data with scale() function (mean of 0), and do another pca-biplot with variability explained by PCs shown on axis labels.  
 
 ```{r}
-# standardize the variables
-human_std <- scale(human)
-
-# perform principal component analysis (with the SVD method)
-pca_human_std <- prcomp(human_std)
-
-# create and print out a summary of pca_human
-s <- summary(pca_human_std)
-
-# rounded percentages of variance captured by each PC
-pca_pr <- round(100*s$importance[2,], digits = 1) 
-
-# print out the percentages of variance
-pca_pr
-
-# create object pc_lab to be used as axis labels
-pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
-
-# draw a biplot
-biplot(pca_human_std, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
-
+§
 ```
 The PCs for standardized data look much better, as most of the observations are located at the middle, and it's much easier to spot the trends shown with the arrows.  
 
