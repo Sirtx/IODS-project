@@ -1,0 +1,310 @@
+# Chapter 6 - Longitudinal data
+
+
+
+```{r}
+date()
+knitr::opts_chunk$set(fig.width=12, fig.height=8) 
+```
+
+## RATS
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+### Reading the wrangled longidutal RATS data
+RATSL<-read.table('data/RATSL.txt', header = T, sep = '\t')
+
+### Reading also the original RATS data for later use
+RATS<-read.table('https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt', header = T, sep = '\t')
+
+### Setting ID and Group as factor
+RATSL$ID <- factor(RATSL$ID)
+RATSL$Group <- factor(RATSL$Group)
+
+
+### Plotting the RATS dataset
+ggplot(RATSL, aes(x = Time, y = Weight, group = ID, col = Group)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (d)") +
+  scale_y_continuous(name = "Weight (g)") + theme_bw()
+
+```
+Here I load the RATSL dataset, which was transformed into long form in previous data wrangling exercise. The three groups were put on different diets, and each animal’s body weight (g). The rat weights was followed altogether for 64 weeks at 11 time points. By looking at the basic plot it's clear that the diet group has more effect to rats' weight than time. However, weight seems to also increase as progresses especially at groups 2 and 3.
+
+### Individual response profiles by group before and after standardization
+
+Here I check how the standardization affects rats' individual response profiles by group. Weight was standardized by dividing mean with standard deviation.
+
+```{r}
+### Plotting individual response profiles by group for RATSL 
+
+ggplot(RATSL, aes(x = Time, y = Weight,  col = ID, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=11)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  ggtitle("Non-standardized") +
+  scale_y_continuous(limits = c(min(RATSL$Weight), max(RATSL$Weight))) + theme_bw()
+
+### Number rats in group
+n <- 11
+# Summary data with mean 
+RATSS <- RATSL %>%
+  group_by(Time) %>%
+  mutate(Weight_std = (Weight - mean(Weight))/sd(Weight)) %>%
+  ungroup()
+
+
+glimpse(RATSS)
+
+# Plot the mean profiles
+ggplot(RATSS, aes(x = Time, y = Weight_std, col = ID, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=11)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  ggtitle("Standardized") +
+  scale_y_continuous(limits = c(min(RATSS$Weight_std), max(RATSS$Weight_std))) + theme_bw()
+
+```
+Plots show that that removed the trend of increasing weight over time, but the group differences remain.
+  
+### Summary measure statistics
+
+
+Here I try to see the trend of groups, by plottin mean profiles for each treatment group, along within group indication of the variation ( standard error of mean) of the observations at each time point.
+
+```{r}
+
+
+### using the n() function from dplyr to get group size
+RATSS <- RATSL %>%
+  group_by(Group, Time) %>%
+  summarise(mean = mean(Weight), se = sd(Weight) /  sqrt(n())) %>% 
+  ungroup()
+
+### Glimpse at the data
+glimpse(RATSS)
+
+### Line plot for groups
+ggplot(RATSS, aes(x = Time, y = mean, linetype = Group, col = Group, shape = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se, linetype="1"), width=0.3) +
+  theme(legend.position = c(0.8,0.8)) +
+  scale_y_continuous(name = "mean(Weight) +/- se(Weight)") + theme_bw()
+
+### Box plot for groups
+ggplot(RATSL, aes(x = factor(Time), y = Weight, fill = Group)) +
+  geom_boxplot(position = position_dodge(width = 1)) + 
+  scale_x_discrete(name = "Time") + theme_bw()
+
+```
+Here I observe again that weight is much heavier on groups 2 and 3 compared to 1. Weight also increases more on 2 and 3 over time, and variability is higher. 
+
+### Outliers
+
+Here I check whether there are significant outliers in the dataset
+
+```{r}
+
+RATSL8S <- RATSL %>%
+  filter(Time >= 1) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+
+
+ggplot(RATSL8S, aes(x = Group, y = mean)) + 
+  geom_boxplot() + stat_summary(fun = "mean", geom = "point", shape=23, size=4, fill = "white") + theme_bw() 
+
+```
+I can see that there's a quite significant outlier at group 2, Outliers at 1 and 3 doesn't seem that large deviations. Let's remove group 2's outlier and plot again:
+
+```{r}
+### Remove the outlier from group 2:
+RATSL8S1 <- RATSL8S %>%
+  filter(mean < 550)
+
+
+ggplot(RATSL8S1, aes(x = Group, y = mean)) + 
+  geom_boxplot() + stat_summary(fun = "mean", geom = "point", shape=23, size=4, fill = "white") + theme_bw() 
+
+```
+
+No outliers at group 2 anymore!
+
+### ANOVA
+
+Here, I perform ANOVA to observe if graphically observed differences between groups are also statistically significant, by setting Group 1 as baseline. 
+
+```{r}
+### Adding baseline values to the summary data
+RATSL8S2 <- RATSL8S %>%
+  mutate(baseline = RATS$WD1)
+
+### Fitting ANCOVA model
+fit <- lm(mean ~ baseline + Group, data = RATSL8S2)
+
+### Summary
+summary(fit)
+
+### Anova
+anova(fit)
+```
+The ANOVA showed significant difference in mean weights between the groups 2 and 3 vs. baseline (group 1) 
+
+## BPRS
+
+In BPRS dataset "40 male subjects were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment began (week 0) and then at weekly intervals for eight weeks. The BPRS assesses the level of 18 symptom constructs such as hostility, suspiciousness, hallucinations and grandiosity; each of these is rated from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia." Page 5: https://mooc.helsinki.fi/pluginfile.php/192850/course/section/7335/MABS4IODS-Part6.pdf
+
+```{r}
+### BPRS
+library("lme4")
+library(gridExtra)
+library(grid)
+
+### Reading the longidutal BPRS data, which was created in the Wrangling exercise
+BPRSL<- read.table('data/BPRSL.txt', header = T, sep = '\t')
+
+### Reading also original BPRS data for some plot
+BPRS<-read.table('https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/BPRS.txt', header = T, sep = ' ')
+
+
+### Assigning treatment and subject as factors
+BPRSL$treatment <- factor(BPRSL$treatment)
+BPRSL$subject <- factor(BPRSL$subject)
+
+### Creating unique id variable for individuals as per suggestion on forum
+# BPRS$id <- seq.int(nrow(BPRS))
+
+glimpse(BPRSL)
+```
+
+```{r}
+
+ggplot(BPRSL, aes(x = week, y = bprs, group = subject, col = treatment)) + 
+  geom_text(aes(label = treatment)) +
+  scale_x_continuous(name = "Week") + 
+  scale_y_continuous(name = "bprs") + theme_bw()
+
+
+```
+
+### bprs standardization
+
+Here I plot the BPRS change along time, solid line , dotted line  
+
+```{r}
+
+
+ggplot(BPRSL, aes(x = week, y = bprs, group = id, col = treatment)) +
+  geom_line(aes(linetype = treatment)) +
+  scale_x_continuous(name = "weeks") +
+  scale_y_continuous(name = "bprs") +
+  theme(legend.position = "top") + theme_bw()
+
+
+```
+
+
+```{r}
+
+### Standardising bprs
+BPRSL <- BPRSL %>%
+  group_by(week) %>%
+  mutate(stdbprs = (bprs - mean(bprs))/sd(bprs) ) %>%
+  ungroup()
+
+glimpse(BPRSL)
+
+```
+
+```{r}
+
+pairs(BPRS[, 3:11], cex = 0.5, col = BPRS$treatment)
+
+```
+### The Linear model
+
+Here I implement a basic linear model for the data.
+
+```{r}
+### create a regression model BPRSL_reg
+BPRSL_reg <- lm(bprs ~ week + treatment, data = BPRSL)
+
+### print out a summary of the model
+summary(BPRSL_reg)
+```
+
+Altogether, the model explains  18,06% of bprs variance. Summary shows that measure time "week" is statistically significant (P<2e-16) in explaining bprs, whereas treatment is not. However, linear model isn't (P=0.661). However, it should be noted that model assumes repeated measurements aren't related, which isn't true here.
+
+### Fitting Random Intercept Model to to BPRS dataset, treatment and week are explanatory variables
+
+
+```{r}
+### Create a random intercept model
+BPRSL_ref <- lmer(bprs ~ week + treatment + (1 | id), data = BPRSL, REML = FALSE)
+
+### Print the summary of the model
+summary(BPRSL_ref)
+
+```
+
+```{r}
+### ref1
+BPRS_ref1 <- lmer(bprs ~ week + treatment + (week | id), data = BPRSL, REML = FALSE)
+
+
+### print a summary of the model
+summary(BPRS_ref2)
+```
+### Random Intercept and Random Slope Model with interaction
+
+Here I am making Random Intercept and Random Slope Model with interaction, which group × time interaction.
+
+```{r}
+# create a random intercept and random slope model
+BPRS_ref1 <- lmer(bprs ~ week * treatment + (week | id), data = BPRSL, REML = FALSE)
+
+# print a summary of the model
+summary(BPRS_ref2)
+
+# perform an ANOVA test on the two models
+anova(BPRS_ref2, BPRS_ref1)
+
+# draw the plot of RATSL
+ggplot(BPRSL, aes(x = week, y = bprs, group = id, col = treatment)) +
+  geom_line(aes(linetype = treatment)) +
+  scale_x_continuous(name = "weeks") +
+  scale_y_continuous(name = "bprs") +
+  ggtitle("Observed") +
+  facet_grid(. ~ treatment, labeller = label_both) +
+  theme(legend.position = "top") + theme_bw()
+
+# Create a vector of the fitted values
+Fitted <- fitted(BPRS_ref2)
+
+# Create a new column fitted to RATSL
+
+BPRSL <- BPRSL %>% 
+  mutate(Fitted)
+
+# draw the plot of RATSL
+ggplot(BPRSL, aes(x = week, y = Fitted, group = id, col = treatment)) +
+  geom_line(aes(linetype = treatment)) +
+  scale_x_continuous(name = "weeks") +
+  scale_y_continuous(name = "bprs") +
+  ggtitle("Fitted") +
+  facet_grid(. ~ treatment, labeller = label_both) +
+  theme(legend.position = "top") + theme_bw()
+
+
+```
+
+Comparing the models: BPRSL_ref1: bprs ~ week + treatment + (week | ID), BPRSL_ref2: bprs ~ week × treatment + (week | ID)): The AIC is slightly larger in the ref1 model than in ref2, so random intercept and random slope model without the interaction performs slightly better. However, The P-value (Pr(>Chisq)) shows that according to Anova test, the models don't have significant difference.  
