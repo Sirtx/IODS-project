@@ -196,9 +196,6 @@ ggplot(BPRSL, aes(x = week, y = bprs, group = subject, col = treatment)) +
 
 ```
 
-### bprs standardization
-
-Here I plot the BPRS change along time, solid line , dotted line  
 
 ```{r}
 
@@ -212,24 +209,20 @@ ggplot(BPRSL, aes(x = week, y = bprs, group = id, col = treatment)) +
 
 ```
 
+Here I plot the BPRS change along time, red solid line individuals belong to treatment group 1, blue dotted line to group 2. 
+From these 2 plots, It looks like bprs score slightly goes down as time goes by, and that group 2 has slightly higher score, but the variance is also larger within group 2.
 
-```{r}
 
-### Standardising bprs
-BPRSL <- BPRSL %>%
-  group_by(week) %>%
-  mutate(stdbprs = (bprs - mean(bprs))/sd(bprs) ) %>%
-  ungroup()
-
-glimpse(BPRSL)
-
-```
+### Trends from data: pairwise measurements
 
 ```{r}
 
 pairs(BPRS[, 3:11], cex = 0.5, col = BPRS$treatment)
 
 ```
+
+Pairwise measurements suggest that bprs scores aren't independent between measurements
+
 ### The Linear model
 
 Here I implement a basic linear model for the data.
@@ -246,6 +239,7 @@ Altogether, the model explains  18,06% of bprs variance. Summary shows that meas
 
 ### Fitting Random Intercept Model to to BPRS dataset, treatment and week are explanatory variables
 
+Fitting a random intercept model for bprs with week and treatment allows the linear regression fit for each rat to differ in intercept from other rats.
 
 ```{r}
 ### Create a random intercept model
@@ -256,21 +250,27 @@ summary(BPRSL_ref)
 
 ```
 
+
+
+### Random Intercept and Random Slope Model
+
+Fitting a random intercept and random slope model allows the linear regression fits for each individual to differ in intercept but also in slope. This way it is possible to account for the individual differences in the bprs profiles, but also the effect of time.
+
 ```{r}
 ### ref1
 BPRS_ref1 <- lmer(bprs ~ week + treatment + (week | id), data = BPRSL, REML = FALSE)
 
 
 ### print a summary of the model
-summary(BPRS_ref2)
+summary(BPRS_ref1)
 ```
 ### Random Intercept and Random Slope Model with interaction
 
-Here I am making Random Intercept and Random Slope Model with interaction, which group × time interaction.
+Here I am making Random Intercept and Random Slope Model with interaction, which treatment × time interaction.
 
 ```{r}
 # create a random intercept and random slope model
-BPRS_ref1 <- lmer(bprs ~ week * treatment + (week | id), data = BPRSL, REML = FALSE)
+BPRS_ref2 <- lmer(bprs ~ week * treatment + (week | id), data = BPRSL, REML = FALSE)
 
 # print a summary of the model
 summary(BPRS_ref2)
