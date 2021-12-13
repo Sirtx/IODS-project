@@ -1,4 +1,4 @@
-### Jani Haukka 13.111.2021 The script creates week 6's datasets
+### Jani Haukka 13.12.2021 The script creates week 6's datasets
 library(dplyr)
 library(tidyr)
 
